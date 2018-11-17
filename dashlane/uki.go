@@ -5,8 +5,8 @@ import (
 	"net/url"
 )
 
-const SENDTOKEN_URI = "https://www.dashlane.com/6/authentication/sendtoken"
-const REGISTER_URI = "https://www.dashlane.com/6/authentication/registeruki"
+const SENDTOKEN_URI = "https://ws1.dashlane.com/6/authentication/sendtoken"
+const REGISTER_URI = "https://ws1.dashlane.com/6/authentication/registeruki"
 
 type SendTokenResult int
 

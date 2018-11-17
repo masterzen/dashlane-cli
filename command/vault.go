@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"path"
+	"fmt"
 
 	"github.com/howeyc/gopass"
 	"github.com/masterzen/dashlane-cli/dashlane"
@@ -91,10 +92,12 @@ func listExec(cmd *cobra.Command, args []string) error {
 	}
 
 	// decrypt vault
-	vault, err := dashlane.ParseVault(args[1], args[0])
+	vault, err := dashlane.ParseVault(args[1], string(password))
 	if err != nil {
 		return err
 	}
+
+	fmt.Println(vault)
 
 	return nil
 }

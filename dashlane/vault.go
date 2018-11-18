@@ -49,17 +49,17 @@ type Vault struct {
 }
 
 func ParseVault(data, password string) (*Vault, error) {
-	vault := new(Vault)
 	decrypted, err := DecryptVault(data, password)
 	if err != nil {
-		return vault, err
+		return nil, err
 	}
 
 	// parse the XML
+	vault := new(Vault)
  err = xml.Unmarshal([]byte(decrypted), &vault)
 	if err != nil {
 		fmt.Printf("error: %v", err)
-		return vault, err
+		return nil, err
 	}
 
 	return vault, nil

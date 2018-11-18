@@ -3,8 +3,8 @@ package command
 import (
 	"encoding/json"
 	"errors"
-	"path"
 	"fmt"
+	"path"
 
 	"github.com/howeyc/gopass"
 	"github.com/masterzen/dashlane-cli/dashlane"

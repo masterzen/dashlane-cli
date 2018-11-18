@@ -56,7 +56,7 @@ func ParseVault(data, password string) (*Vault, error) {
 
 	// parse the XML
 	vault := new(Vault)
- err = xml.Unmarshal([]byte(decrypted), &vault)
+	err = xml.Unmarshal([]byte(decrypted), &vault)
 	if err != nil {
 		fmt.Printf("error: %v", err)
 		return nil, err

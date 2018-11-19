@@ -3,7 +3,6 @@ package dashlane
 import (
 	"fmt"
 	"net/url"
-
 )
 
 type ExistResult int
@@ -15,7 +14,7 @@ const (
 	EXIST_ERROR
 )
 
-const EXIST_URI = "https://www.dashlane.com/6/authentication/exists"
+const EXIST_URI = "https://ws1.dashlane.com/6/authentication/exists"
 
 func Exist(login string) (ExistResult, error) {
 	data := url.Values{}

@@ -1,11 +1,11 @@
 package dashlane
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"crypto/tls"
 
 	jww "github.com/spf13/jwalterweatherman"
 )
@@ -15,7 +15,7 @@ func PostData(uri string, data url.Values) (string, error) {
 	tr := &http.Transport{
 		TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
 		DisableCompression: true,
-		Proxy: http.ProxyFromEnvironment,
+		Proxy:              http.ProxyFromEnvironment,
 	}
 	client := &http.Client{Transport: tr}
 	resp, err := client.PostForm(uri, data)

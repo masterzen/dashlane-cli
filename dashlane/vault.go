@@ -8,6 +8,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -47,14 +48,21 @@ type Vault struct {
 	Passwords []PasswordEntry `xml:"KWAuthentifiant>KWDataItem"`
 }
 
-func ParseVault(data, password string) (Vault, error) {
+func ParseVault(data, password string) (*Vault, error) {
 	decrypted, err := DecryptVault(data, password)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// parse the XML
+	vault := new(Vault)
+	err = xml.Unmarshal([]byte(decrypted), &vault)
+	if err != nil {
+		fmt.Printf("error: %v", err)
+		return nil, err
+	}
 
+	return vault, nil
 }
 
 /* DecryptVault decrypts the given vault with the given password

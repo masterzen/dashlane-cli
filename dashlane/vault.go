@@ -7,7 +7,8 @@ import (
 	"crypto/cipher"
 	"crypto/sha1"
 	"encoding/base64"
-	"encoding/hex"
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -44,25 +45,54 @@ type PasswordEntry struct {
 }
 
 type Vault struct {
-	Passwords []PasswordEntry `xml:"KWAuthentifiant>KWDataItem"`
+	Passwords []PasswordEntry `xml:"KWAuthentifiant>KWDataItem,omitempty"`
 }
 
-func ParseVault(data, password string) (Vault, error) {
+type TransactionsEntry struct {
+	Action     string `json:"action"`
+	BackupDate int    `json:"backupdate"`
+	Content    string `json:"content,omitempty"`
+	Identifier string `json:"identifier"`
+	ObjectType string `json:"objectType"`
+	Time       int    `json:"time"`
+	Type       string `json:"type"`
+}
+
+type RawVault struct {
+	Transactions []TransactionsEntry `json:"transactionList,omitempty"`
+}
+
+func LoadVault(data []byte) (*RawVault, error) {
+	rawVault := new(RawVault)
+	err := json.Unmarshal(data, rawVault)
+	if err != nil {
+		return nil, err
+	}
+	return rawVault, nil
+}
+
+func ParseVault(data, password string) (*Vault, error) {
 	decrypted, err := DecryptVault(data, password)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	vault := new(Vault)
+	err = xml.Unmarshal(decrypted, vault)
+	if err != nil {
+		return nil, err
 	}
 
 	// parse the XML
-
+	return vault, nil
 }
 
 /* DecryptVault decrypts the given vault with the given password
  */
-func DecryptVault(data string, password string) (string, error) {
+func DecryptVault(data string, password string) ([]byte, error) {
 	decoded, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
-		return "", err
+		return nil,  err
 	}
 
 	encryptedData := parseEncryptedData(string(decoded))
@@ -75,25 +105,23 @@ func DecryptVault(data string, password string) (string, error) {
 	}
 	plaintext, err := uncrypt(encryptedData.ciphertext, iv, key)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if encryptedData.compressed {
 		return uncompress(plaintext[6:len(plaintext)])
 	}
-	return string(plaintext), nil
+	return plaintext, nil
 }
 
-func uncompress(data []byte) (string, error) {
-	fmt.Println("plaintext")
-	fmt.Print(hex.Dump(data))
+func uncompress(data []byte) ([]byte, error) {
 	r := flate.NewReader(bytes.NewReader(data))
 	defer r.Close()
 	b, err := ioutil.ReadAll(r)
 	if err == nil {
-		return string(b), nil
+		return b, nil
 	}
-	return "", err
+	return nil, err
 }
 
 func uncrypt(ciphertext string, iv, key []byte) ([]byte, error) {

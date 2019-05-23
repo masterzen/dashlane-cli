@@ -3,6 +3,7 @@ package command
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"path"
 
 	"github.com/howeyc/gopass"
@@ -85,15 +86,29 @@ func listExec(cmd *cobra.Command, args []string) error {
 	}
 
 	// ask for password
+	fmt.Print("Password: ")
 	password, err := gopass.GetPasswd()
 	if err != nil {
 		return err
 	}
 
-	// decrypt vault
-	vault, err := dashlane.ParseVault(args[1], args[0])
+	// Read the vault and parse the json
+	rawFileVault, err := afero.ReadFile(Filesystem, path.Join(DashlaneDir, "vault.json"))
 	if err != nil {
 		return err
+	}
+	jsonVault, err := dashlane.LoadVault(rawFileVault)
+	if err != nil {
+		return err
+	}
+	for _, transaction := range jsonVault.Transactions {
+		if len(transaction.Content) > 0 && (transaction.Type == "AUTHENTIFIANT" || transaction.Type == "SECURENOTE") {
+			transactionVault, err := dashlane.ParseVault(transaction.Content, string(password))
+			if err != nil {
+				return err
+			}
+			fmt.Println(transactionVault)
+		}
 	}
 
 	return nil

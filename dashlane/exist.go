@@ -3,7 +3,6 @@ package dashlane
 import (
 	"fmt"
 	"net/url"
-
 )
 
 type ExistResult int

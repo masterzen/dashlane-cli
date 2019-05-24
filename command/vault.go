@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strings"
 
 	"github.com/howeyc/gopass"
 	"github.com/masterzen/dashlane-cli/dashlane"
@@ -101,15 +102,24 @@ func listExec(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	for _, transaction := range jsonVault.Transactions {
-		if len(transaction.Content) > 0 && (transaction.Type == "AUTHENTIFIANT" || transaction.Type == "SECURENOTE") {
-			transactionVault, err := dashlane.ParseVault(transaction.Content, string(password))
-			if err != nil {
-				return err
-			}
-			fmt.Println(transactionVault)
-		}
+
+	vault, err := dashlane.ParseVault(jsonVault.FullBackupFile, string(password))
+	if err != nil {
+		return err
 	}
 
+	lookupVaultData(vault.List.Passwords, args[0])
+	lookupVaultData(vault.List.Notes, args[0])
 	return nil
+}
+
+func lookupVaultData(items []dashlane.VaultItem, pattern string) {
+	for _, item := range items {
+		for _, data := range item.Datas {
+			if data.Key == "Title" && strings.Contains(data.Value, pattern) {
+				fmt.Println(item.Datas)
+				fmt.Println("==============")
+			}
+		}
+	}
 }

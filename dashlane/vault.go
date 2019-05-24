@@ -37,15 +37,24 @@ func GetEntry(vault string) {
 
 }
 
-type PasswordEntry struct {
-	ID       string `xml:"Id,attr"`
-	Title    string `xml:"Title,attr"`
-	Login    string `xml:"Login,attr"`
-	Password string `xml:"Password,attr"`
+type VaultEntry struct {
+	Key       string `xml:"key,attr"`
+	Value    string `xml:",chardata"`
+}
+
+type VaultItem struct {
+	Datas []VaultEntry `xml:"KWDataItem"`
+}
+
+type VaultList struct {
+	XMLName xml.Name `xml:"KWDataList"`
+	Passwords []VaultItem `xml:"KWAuthentifiant,omitempty"`
+	Notes []VaultItem `xml:"KWSecureNote,omitempty"`
 }
 
 type Vault struct {
-	Passwords []PasswordEntry `xml:"KWAuthentifiant>KWDataItem,omitempty"`
+	XMLName xml.Name `xml:"root"`
+	List VaultList `xml:"KWDataList`
 }
 
 type TransactionsEntry struct {
@@ -59,7 +68,8 @@ type TransactionsEntry struct {
 }
 
 type RawVault struct {
-	Transactions []TransactionsEntry `json:"transactionList,omitempty"`
+	Transactions []TransactionsEntry `json:"transactionList"`
+	FullBackupFile string `json:"fullBackupFile"`
 }
 
 func LoadVault(data []byte) (*RawVault, error) {
@@ -76,14 +86,13 @@ func ParseVault(data, password string) (*Vault, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// fmt.Println(string(decrypted))
 	vault := new(Vault)
 	err = xml.Unmarshal(decrypted, vault)
 	if err != nil {
 		return nil, err
 	}
 
-	// parse the XML
 	return vault, nil
 }
 

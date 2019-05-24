@@ -9,7 +9,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-const LATEST_URI = "https://www.dashlane.com/12/backup/latest"
+const LATEST_URI = "https://ws1.dashlane.com/12/backup/latest"
 
 func LatestToken(login string, code string) (string, error) {
 	jww.DEBUG.Println("LatestToken: ", login, code)

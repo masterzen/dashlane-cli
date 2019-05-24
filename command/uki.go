@@ -35,7 +35,7 @@ var registerCmd = &cobra.Command{
 }
 
 var codeCmd = &cobra.Command{
-	Use:   "code <code>",
+	Use:   "code <username> <code>",
 	Short: "Finalize this computer registration",
 	Long: `dashlane-cli uki code allows to enter the confirmation code.
 

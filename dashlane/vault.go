@@ -38,8 +38,8 @@ func GetEntry(vault string) {
 }
 
 type VaultEntry struct {
-	Key       string `xml:"key,attr"`
-	Value    string `xml:",chardata"`
+	Key   string `xml:"key,attr"`
+	Value string `xml:",chardata"`
 }
 
 type VaultItem struct {
@@ -47,14 +47,14 @@ type VaultItem struct {
 }
 
 type VaultList struct {
-	XMLName xml.Name `xml:"KWDataList"`
+	XMLName   xml.Name    `xml:"KWDataList"`
 	Passwords []VaultItem `xml:"KWAuthentifiant,omitempty"`
-	Notes []VaultItem `xml:"KWSecureNote,omitempty"`
+	Notes     []VaultItem `xml:"KWSecureNote,omitempty"`
 }
 
 type Vault struct {
-	XMLName xml.Name `xml:"root"`
-	List VaultList `xml:"KWDataList`
+	XMLName xml.Name  `xml:"root"`
+	List    VaultList `xml:"KWDataList`
 }
 
 type TransactionsEntry struct {
@@ -68,8 +68,8 @@ type TransactionsEntry struct {
 }
 
 type RawVault struct {
-	Transactions []TransactionsEntry `json:"transactionList"`
-	FullBackupFile string `json:"fullBackupFile"`
+	Transactions   []TransactionsEntry `json:"transactionList"`
+	FullBackupFile string              `json:"fullBackupFile"`
 }
 
 func LoadVault(data []byte) (*RawVault, error) {
@@ -101,7 +101,7 @@ func ParseVault(data, password string) (*Vault, error) {
 func DecryptVault(data string, password string) ([]byte, error) {
 	decoded, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
-		return nil,  err
+		return nil, err
 	}
 
 	encryptedData := parseEncryptedData(string(decoded))

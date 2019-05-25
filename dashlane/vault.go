@@ -127,10 +127,11 @@ func uncompress(data []byte) ([]byte, error) {
 	r := flate.NewReader(bytes.NewReader(data))
 	defer r.Close()
 	b, err := ioutil.ReadAll(r)
-	if err == nil {
-		return b, nil
+	if err != nil {
+		return nil, err
 	}
-	return nil, err
+
+	return b, nil
 }
 
 func uncrypt(ciphertext string, iv, key []byte) ([]byte, error) {

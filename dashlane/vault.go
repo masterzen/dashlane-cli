@@ -7,7 +7,7 @@ import (
 	"crypto/cipher"
 	"crypto/sha1"
 	"encoding/base64"
-	"encoding/hex"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
@@ -37,15 +37,48 @@ func GetEntry(vault string) {
 
 }
 
-type PasswordEntry struct {
-	ID       string `xml:"Id,attr"`
-	Title    string `xml:"Title,attr"`
-	Login    string `xml:"Login,attr"`
-	Password string `xml:"Password,attr"`
+type VaultEntry struct {
+	Key   string `xml:"key,attr"`
+	Value string `xml:",chardata"`
+}
+
+type VaultItem struct {
+	Datas []VaultEntry `xml:"KWDataItem"`
+}
+
+type VaultList struct {
+	XMLName   xml.Name    `xml:"KWDataList"`
+	Passwords []VaultItem `xml:"KWAuthentifiant,omitempty"`
+	Notes     []VaultItem `xml:"KWSecureNote,omitempty"`
 }
 
 type Vault struct {
-	Passwords []PasswordEntry `xml:"KWAuthentifiant>KWDataItem"`
+	XMLName xml.Name  `xml:"root"`
+	List    VaultList `xml:"KWDataList`
+}
+
+type TransactionsEntry struct {
+	Action     string `json:"action"`
+	BackupDate int    `json:"backupdate"`
+	Content    string `json:"content,omitempty"`
+	Identifier string `json:"identifier"`
+	ObjectType string `json:"objectType"`
+	Time       int    `json:"time"`
+	Type       string `json:"type"`
+}
+
+type RawVault struct {
+	Transactions   []TransactionsEntry `json:"transactionList"`
+	FullBackupFile string              `json:"fullBackupFile"`
+}
+
+func LoadVault(data []byte) (*RawVault, error) {
+	rawVault := new(RawVault)
+	err := json.Unmarshal(data, rawVault)
+	if err != nil {
+		return nil, err
+	}
+	return rawVault, nil
 }
 
 func ParseVault(data, password string) (*Vault, error) {
@@ -53,12 +86,10 @@ func ParseVault(data, password string) (*Vault, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// parse the XML
+	// fmt.Println(string(decrypted))
 	vault := new(Vault)
-	err = xml.Unmarshal([]byte(decrypted), &vault)
+	err = xml.Unmarshal(decrypted, vault)
 	if err != nil {
-		fmt.Printf("error: %v", err)
 		return nil, err
 	}
 
@@ -67,10 +98,10 @@ func ParseVault(data, password string) (*Vault, error) {
 
 /* DecryptVault decrypts the given vault with the given password
  */
-func DecryptVault(data string, password string) (string, error) {
+func DecryptVault(data string, password string) ([]byte, error) {
 	decoded, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	encryptedData := parseEncryptedData(string(decoded))
@@ -83,25 +114,24 @@ func DecryptVault(data string, password string) (string, error) {
 	}
 	plaintext, err := uncrypt(encryptedData.ciphertext, iv, key)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if encryptedData.compressed {
 		return uncompress(plaintext[6:len(plaintext)])
 	}
-	return string(plaintext), nil
+	return plaintext, nil
 }
 
-func uncompress(data []byte) (string, error) {
-	fmt.Println("plaintext")
-	fmt.Print(hex.Dump(data))
+func uncompress(data []byte) ([]byte, error) {
 	r := flate.NewReader(bytes.NewReader(data))
 	defer r.Close()
 	b, err := ioutil.ReadAll(r)
-	if err == nil {
-		return string(b), nil
+	if err != nil {
+		return nil, err
 	}
-	return "", err
+
+	return b, nil
 }
 
 func uncrypt(ciphertext string, iv, key []byte) ([]byte, error) {

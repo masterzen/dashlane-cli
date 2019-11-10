@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strings"
 
 	"github.com/howeyc/gopass"
 	"github.com/masterzen/dashlane-cli/dashlane"
@@ -86,18 +87,39 @@ func listExec(cmd *cobra.Command, args []string) error {
 	}
 
 	// ask for password
+	fmt.Print("Password: ")
 	password, err := gopass.GetPasswd()
 	if err != nil {
 		return err
 	}
 
-	// decrypt vault
-	vault, err := dashlane.ParseVault(args[1], string(password))
+	// Read the vault and parse the json
+	rawFileVault, err := afero.ReadFile(Filesystem, path.Join(DashlaneDir, "vault.json"))
+	if err != nil {
+		return err
+	}
+	jsonVault, err := dashlane.LoadVault(rawFileVault)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(vault)
+	vault, err := dashlane.ParseVault(jsonVault.FullBackupFile, string(password))
+	if err != nil {
+		return err
+	}
 
+	lookupVaultData(vault.List.Passwords, args[0])
+	lookupVaultData(vault.List.Notes, args[0])
 	return nil
+}
+
+func lookupVaultData(items []dashlane.VaultItem, pattern string) {
+	for _, item := range items {
+		for _, data := range item.Datas {
+			if data.Key == "Title" && strings.Contains(data.Value, pattern) {
+				fmt.Println(item.Datas)
+				fmt.Println("==============")
+			}
+		}
+	}
 }

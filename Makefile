@@ -11,16 +11,10 @@ GITSHA:=$(shell git rev-parse HEAD)
 # Get the current local branch name from git (if we can, this may be blank)
 GITBRANCH:=$(shell git symbolic-ref --short HEAD 2>/dev/null)
 
-all: deps
+all:
 	@mkdir -p bin/
 	@printf "$(OK_COLOR)==> Building$(NO_COLOR)\n"
-	@GO15VENDOREXPERIMENT=1 go build -ldflags "-X github.com/masterzen/dashlane-cli/version.GitSHA=${GITSHA}" -o $(GOPATH)/bin/dashlane-cli .
-
-deps:
-	@printf "$(OK_COLOR)==> Installing dependencies$(NO_COLOR)\n"
-#	@printf "$(OK_COLOR)==> Installing godep and restoring dependencies$(NO_COLOR)\n"; \
-#		go get github.com/tools/godep; \
-#		godep restore;
+	@go build -ldflags "-X github.com/masterzen/dashlane-cli/version.GitSHA=${GITSHA}" -o bin/dashlane-cli .
 
 clean:
 	@rm -rf bin/ pkg/ src/
@@ -28,21 +22,12 @@ clean:
 format:
 	go fmt `go list ./... | grep -v vendor`
 
-ci: deps
+ci:
 	@printf "$(OK_COLOR)==> Testing with Coveralls...$(NO_COLOR)\n"
 	"$(CURDIR)/scripts/test.sh"
 
-test: deps
+test:
 	@printf "$(OK_COLOR)==> Testing...$(NO_COLOR)\n"
 	@go test $(TEST) $(TESTARGS) -timeout=2m
 
-updatedeps:
-	@printf "$(ERROR_COLOR): dashlane-cli deps are managed by godep.$(NO_COLOR)\n"
-
-# This is used to add new dependencies to dashlane-cli. If you are submitting a PR
-# that includes new dependencies you will need to run this.
-vendor:
-	godep restore
-	godep save
-
-.PHONY: all clean deps format test updatedeps
+.PHONY: all clean

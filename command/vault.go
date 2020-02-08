@@ -4,61 +4,34 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"path"
 	"strings"
 
 	"github.com/howeyc/gopass"
 	"github.com/masterzen/dashlane-cli/dashlane"
 	"github.com/spf13/afero"
-	"github.com/spf13/cobra"
 )
 
-var vaultCmd = &cobra.Command{
-	Use:     "vault [fetch|get|list]",
-	Short:   "Manage the vault",
-	Long:    `dashlane-cli vault allows to get passwords and fetch the latest vault.`,
-	Example: `dashlane-cli vault get www.google.com`,
+type VaultCmd struct {
+	Fetch FetchCmd `cmd help:"Fetch the <login> vault from the registered computer <uki>."`
+	Get   GetCmd   `cmd help:"Get a vault password."`
+	List  ListCmd  `cmd help:"List the content of the vault matching pattern."`
 }
 
-var fetchCmd = &cobra.Command{
-	Use:   "fetch <login> <uki>",
-	Short: "Fetch the <login> vault from the registered computer <uki>",
-	Long: `dashlane-cli vault fetch allows to get the latest vault.
-
-`,
-	Example: `dashlane-cli vault fetch myself@gmail.com blablah-webapp-blah`,
-	RunE:    fetchExec,
+type FetchCmd struct {
+	Login string `arg required name:"username" help:"Username."`
+	Uki   string `arg required name:"uki" help:"Uki."`
 }
 
-var listCmd = &cobra.Command{
-	Use:   "list [pattern]",
-	Short: "List the content of the vault matching pattern",
-	Long: `dashlane-cli vault list allows to list the content of given vault.
-The vault has to be fetch with 'dashlane-cli vault fetch' first
-`,
-	Example: `dashlane-cli vault list www.google.com`,
-	RunE:    listExec,
+type GetCmd struct {
+	Site string `arg required name:"site" help:"Site."`
 }
 
-var getCmd = &cobra.Command{
-	Use:   "get <site>",
-	Short: "Get a vault password",
-	Long: `dashlane-cli vault get allows to get the password of given vault entry.
-The vault has to be fetch with 'dashlane-cli vault fetch' first
-`,
-	Example: `dashlane-cli vault get www.google.com`,
-	RunE:    getExec,
+type ListCmd struct {
+	Pattern string `arg required name:"pattern" help:"Pattern."`
 }
 
-func init() {
-	RootCmd.AddCommand(vaultCmd)
-	vaultCmd.AddCommand(fetchCmd)
-	vaultCmd.AddCommand(listCmd)
-	vaultCmd.AddCommand(getCmd)
-}
-
-func fetchExec(cmd *cobra.Command, args []string) error {
-	vault, err := dashlane.LatestVault(args[0], args[1])
+func (f *FetchCmd) Run(ctx *Context) error {
+	vault, err := dashlane.LatestVault(f.Login, f.Uki)
 	if err != nil {
 		return err
 	}
@@ -68,16 +41,16 @@ func fetchExec(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return afero.WriteFile(Filesystem, path.Join(DashlaneDir, "vault.json"), []byte(b), 0600)
+	return afero.WriteFile(ctx.Filesystem, ctx.DashlaneVault, []byte(b), 0600)
 }
 
-func getExec(cmd *cobra.Command, args []string) error {
+func (g *GetCmd) Run(ctx *Context) error {
 	return nil
 }
 
-func listExec(cmd *cobra.Command, args []string) error {
+func (l *ListCmd) Run(ctx *Context) error {
 	// read vault from vault dir
-	b, err := afero.Exists(Filesystem, path.Join(DashlaneDir, "vault.json"))
+	b, err := afero.Exists(ctx.Filesystem, ctx.DashlaneVault)
 	if err != nil {
 		return err
 	}
@@ -94,7 +67,7 @@ func listExec(cmd *cobra.Command, args []string) error {
 	}
 
 	// Read the vault and parse the json
-	rawFileVault, err := afero.ReadFile(Filesystem, path.Join(DashlaneDir, "vault.json"))
+	rawFileVault, err := afero.ReadFile(ctx.Filesystem, ctx.DashlaneVault)
 	if err != nil {
 		return err
 	}
@@ -103,13 +76,13 @@ func listExec(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	vault, err := dashlane.ParseVault(jsonVault.FullBackupFile, string(password))
+	vault, err := dashlane.ParseVault(jsonVault.FullBackupFile, password)
 	if err != nil {
 		return err
 	}
 
-	lookupVaultData(vault.List.Passwords, args[0])
-	lookupVaultData(vault.List.Notes, args[0])
+	lookupVaultData(vault.List.Passwords, l.Pattern)
+	lookupVaultData(vault.List.Notes, l.Pattern)
 	return nil
 }
 

@@ -81,7 +81,7 @@ func LoadVault(data []byte) (*RawVault, error) {
 	return rawVault, nil
 }
 
-func ParseVault(data, password string) (*Vault, error) {
+func ParseVault(data string, password []byte) (*Vault, error) {
 	decrypted, err := DecryptVault(data, password)
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func ParseVault(data, password string) (*Vault, error) {
 
 /* DecryptVault decrypts the given vault with the given password
  */
-func DecryptVault(data string, password string) ([]byte, error) {
+func DecryptVault(data string, password []byte) ([]byte, error) {
 	decoded, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		return nil, err
@@ -107,7 +107,7 @@ func DecryptVault(data string, password string) ([]byte, error) {
 	encryptedData := parseEncryptedData(string(decoded))
 
 	originalKey := deriveEncryptionKey(encryptedData, password)
-	ivKey, iv := deriveEncryptionIV(encryptedData, originalKey, password)
+	ivKey, iv := deriveEncryptionIV(encryptedData, originalKey)
 	key := originalKey
 	if encryptedData.useDerivedKey {
 		key = ivKey
@@ -159,7 +159,7 @@ func uncrypt(ciphertext string, iv, key []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-func deriveEncryptionIV(data *encryptedData, key []byte, password string) ([]byte, []byte) {
+func deriveEncryptionIV(data *encryptedData, key []byte) ([]byte, []byte) {
 	salted := append(key, []byte(data.salt[:8])...)
 
 	parts := []string{""}
@@ -173,8 +173,8 @@ func deriveEncryptionIV(data *encryptedData, key []byte, password string) ([]byt
 	return []byte(keyIV[0:32]), []byte(keyIV[32:48])
 }
 
-func deriveEncryptionKey(data *encryptedData, password string) []byte {
-	return pbkdf2.Key([]byte(password), []byte(data.salt), 10204, 32, sha1.New)
+func deriveEncryptionKey(data *encryptedData, password []byte) []byte {
+	return pbkdf2.Key(password, []byte(data.salt), 10204, 32, sha1.New)
 }
 
 func multipleSha1(b []byte, it int) []byte {

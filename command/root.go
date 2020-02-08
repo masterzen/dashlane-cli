@@ -1,6 +1,7 @@
 package command
 
 import (
+	"encoding/json"
 	"path"
 
 	homedir "github.com/mitchellh/go-homedir"
@@ -10,12 +11,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// UserConfig
+type UserConfig struct {
+	Username string `json:"username"`
+	Uki      string `json:"uki"`
+}
+
 type debugFlag bool
 
 // Context of the app
 type Context struct {
 	Filesystem     afero.Fs
-	DashlaneDir    string
 	DashlaneVault  string
 	DashlaneConfig string
 }
@@ -30,23 +36,23 @@ type cli struct {
 
 // Execute the commands
 func Execute() {
-	cli := new(cli)
-	kongctx := kong.Parse(cli)
 
 	dir, err := homedir.Dir()
 	if err != nil {
-		kongctx.FatalIfErrorf(err)
+		logrus.WithError(err).Error("Can't get user home directory")
 	}
+	dashlaneDir := path.Join(dir, ".dashlane")
 
 	context := &Context{
 		Filesystem:     afero.NewOsFs(),
-		DashlaneDir:    path.Join(dir, ".dashlane"),
-		DashlaneVault:  path.Join(dir, ".dashlane", "vault.json"),
-		DashlaneConfig: path.Join(dir, ".dashlane", "config.json"),
+		DashlaneVault:  path.Join(dashlaneDir, "vault.json"),
+		DashlaneConfig: path.Join(dashlaneDir, "config.json"),
 	}
+	context.Filesystem.MkdirAll(dashlaneDir, 0700)
 
-	context.Filesystem.MkdirAll(context.DashlaneDir, 0700)
-
+	cli := new(cli)
+	kconfig := kong.Configuration(kong.JSON, context.DashlaneConfig)
+	kongctx := kong.Parse(cli, kconfig)
 	err = kongctx.Run(context)
 	kongctx.FatalIfErrorf(err)
 }
@@ -54,4 +60,18 @@ func Execute() {
 func (d debugFlag) BeforeApply() error {
 	logrus.SetLevel(logrus.DebugLevel)
 	return nil
+}
+
+func (ctx *Context) SaveUserCreds(username string, uki string) error {
+	userConfig := UserConfig{
+		Username: username,
+		Uki:      uki,
+	}
+
+	b, err := json.Marshal(userConfig)
+	if err != nil {
+		return err
+	}
+
+	return afero.WriteFile(ctx.Filesystem, ctx.DashlaneConfig, b, 0600)
 }

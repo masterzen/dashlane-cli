@@ -6,13 +6,13 @@ import (
 	"net/url"
 	"strings"
 
-	jww "github.com/spf13/jwalterweatherman"
+	"github.com/sirupsen/logrus"
 )
 
 const LATEST_URI = "https://ws1.dashlane.com/12/backup/latest"
 
 func LatestToken(login string, code string) (string, error) {
-	jww.DEBUG.Println("LatestToken: ", login, code)
+	logrus.Debug("LatestToken: ", login, code)
 	data := url.Values{}
 	data.Set("login", login)
 	data.Set("otp", code)
@@ -41,7 +41,7 @@ func LatestToken(login string, code string) (string, error) {
 }
 
 func LatestVault(login string, uki string) (map[string]interface{}, error) {
-	jww.DEBUG.Println("LatestVault: ", login, uki)
+	logrus.Debug("LatestVault: ", login, uki)
 	data := url.Values{}
 	data.Set("login", login)
 	data.Set("uki", uki)
@@ -62,7 +62,7 @@ func LatestVault(login string, uki string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("invalid JSON %v", body)
 	}
 
-	jww.DEBUG.Println("vault: ", v)
+	logrus.Debug("vault: ", v)
 
 	if v["fullBackupFile"] == nil {
 		return nil, fmt.Errorf("Error, no full backup returned")

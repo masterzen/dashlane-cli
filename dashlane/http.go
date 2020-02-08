@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"net/url"
 
-	jww "github.com/spf13/jwalterweatherman"
+	"github.com/sirupsen/logrus"
 )
 
 func PostData(uri string, data url.Values) (string, error) {
-	jww.DEBUG.Println("PostData: ", uri, data)
+	logrus.Debug("PostData: ", uri, data)
 	tr := &http.Transport{
 		TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
 		DisableCompression: true,

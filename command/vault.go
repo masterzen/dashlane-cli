@@ -18,8 +18,8 @@ type VaultCmd struct {
 }
 
 type FetchCmd struct {
-	Login string `arg required name:"username" help:"Username."`
-	Uki   string `arg required name:"uki" help:"Uki."`
+	Login string `required name:"username" help:"Username."`
+	Uki   string `required name:"uki" help:"Uki."`
 }
 
 type GetCmd struct {

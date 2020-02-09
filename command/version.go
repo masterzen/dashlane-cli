@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/masterzen/dashlane-cli/version"
+	"github.com/masterzen/dashlane-cli/pkg/version"
 )
 
 type VersionCmd struct{}

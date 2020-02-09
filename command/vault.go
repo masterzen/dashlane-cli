@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/howeyc/gopass"
-	"github.com/masterzen/dashlane-cli/dashlane"
+	"github.com/masterzen/dashlane-cli/pkg/dashlane"
 	"github.com/spf13/afero"
 )
 

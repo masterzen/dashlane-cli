@@ -57,7 +57,10 @@ func (r *RegisterCmd) Run(ctx *Context) error {
 			if token, err := dashlane.LatestToken(login, code); err == nil {
 				// register now
 				logrus.Debug("registerExec token is: ", token)
-				uki := generate()
+				uki, err := generate()
+				if err != nil {
+					return err
+				}
 				logrus.Debug("registerExec uki is: ", uki)
 				if err = dashlane.RegisterUki("dashlane-cli", login, token, uki); err != nil {
 					return err
@@ -83,27 +86,30 @@ func getMD5Hash(text string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func generate() string {
+func generate() (string, error) {
 	r, err := rand.Int(rand.Reader, big.NewInt(268435456))
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	var time = fmt.Sprintf("%d", time.Now().Unix())
 	var text = runtime.GOOS + runtime.GOARCH + time + r.Text(16)
 	var hashed = getMD5Hash(text)
 
-	return hashed + "-webaccess-" + time
+	return hashed + "-webaccess-" + time, nil
 }
 
 func (c *CodeCmd) Run(ctx *Context) error {
 	var login = c.Username
 	var token = c.Code
-	var uki = generate()
+	uki, err := generate()
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("Registering")
 
-	if err := dashlane.RegisterUki("dashlane-cli", login, token, uki); err != nil {
+	if err = dashlane.RegisterUki("dashlane-cli", login, token, uki); err != nil {
 		return err
 	}
 

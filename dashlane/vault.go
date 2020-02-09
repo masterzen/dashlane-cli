@@ -136,16 +136,16 @@ func uncompress(data []byte) ([]byte, error) {
 
 func uncrypt(ciphertext string, iv, key []byte) ([]byte, error) {
 	if len(ciphertext) < aes.BlockSize {
-		panic("ciphertext too short")
+		return nil, fmt.Errorf("ciphertext too short")
 	}
 	if len(ciphertext)%aes.BlockSize != 0 {
-		panic(fmt.Sprintf("ciphertext (%v) is not a multiple of the block size (%v)", len(ciphertext), aes.BlockSize))
+		return nil, fmt.Errorf("ciphertext (%v) is not a multiple of the block size (%v)", len(ciphertext), aes.BlockSize)
 	}
 	if len(key)%aes.BlockSize != 0 {
-		panic("key size not multiple of block size")
+		return nil, fmt.Errorf("key size not multiple of block size")
 	}
 	if len(iv) != aes.BlockSize {
-		panic("iv size not same as block size")
+		return nil, fmt.Errorf("iv size not same as block size")
 	}
 
 	block, err := aes.NewCipher(key)

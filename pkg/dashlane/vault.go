@@ -33,7 +33,7 @@ type encryptedData struct {
 
 /*
  */
-func GetEntry(vault string) {
+func (dl *Dashlane) GetEntry(vault string) {
 
 }
 
@@ -72,7 +72,7 @@ type RawVault struct {
 	FullBackupFile string              `json:"fullBackupFile"`
 }
 
-func LoadVault(data []byte) (*RawVault, error) {
+func (dl *Dashlane) LoadVault(data []byte) (*RawVault, error) {
 	rawVault := new(RawVault)
 	err := json.Unmarshal(data, rawVault)
 	if err != nil {
@@ -81,8 +81,8 @@ func LoadVault(data []byte) (*RawVault, error) {
 	return rawVault, nil
 }
 
-func ParseVault(data string, password []byte) (*Vault, error) {
-	decrypted, err := DecryptVault(data, password)
+func (dl *Dashlane) ParseVault(data string, password []byte) (*Vault, error) {
+	decrypted, err := dl.DecryptVault(data, password)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func ParseVault(data string, password []byte) (*Vault, error) {
 
 /* DecryptVault decrypts the given vault with the given password
  */
-func DecryptVault(data string, password []byte) ([]byte, error) {
+func (dl *Dashlane) DecryptVault(data string, password []byte) ([]byte, error) {
 	decoded, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		return nil, err

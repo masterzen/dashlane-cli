@@ -11,7 +11,7 @@ import (
 
 const LATEST_URI = "https://ws1.dashlane.com/12/backup/latest"
 
-func LatestToken(login string, code string) (string, error) {
+func (dl *Dashlane) LatestToken(login string, code string) (string, error) {
 	logrus.Debug("LatestToken: ", login, code)
 	data := url.Values{}
 	data.Set("login", login)
@@ -40,7 +40,7 @@ func LatestToken(login string, code string) (string, error) {
 	return v["token"].(string), nil
 }
 
-func LatestVault(login string, uki string) (map[string]interface{}, error) {
+func (dl *Dashlane) LatestVault(login string, uki string) (map[string]interface{}, error) {
 	logrus.Debug("LatestVault: ", login, uki)
 	data := url.Values{}
 	data.Set("login", login)

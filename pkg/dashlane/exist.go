@@ -16,7 +16,7 @@ const (
 
 const EXIST_URI = "https://ws1.dashlane.com/6/authentication/exists"
 
-func Exist(login string) (ExistResult, error) {
+func (dl *Dashlane) Exist(login string) (ExistResult, error) {
 	data := url.Values{}
 	data.Set("login", login)
 	data.Set("isOTPAware", "true")

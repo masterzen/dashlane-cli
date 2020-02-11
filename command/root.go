@@ -1,8 +1,9 @@
 package command
 
 import (
-	"encoding/json"
 	"path"
+
+	"github.com/masterzen/dashlane-cli/pkg/dashlane"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/afero"
@@ -11,19 +12,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// UserConfig
-type UserConfig struct {
-	Username string `json:"username"`
-	Uki      string `json:"uki"`
-}
-
 type debugFlag bool
 
 // Context of the app
 type Context struct {
-	Filesystem     afero.Fs
-	DashlaneVault  string
-	DashlaneConfig string
+	Dl *dashlane.Dashlane
 }
 
 type cli struct {
@@ -43,15 +36,17 @@ func Execute() {
 	}
 	dashlaneDir := path.Join(dir, ".dashlane")
 
+	fs := afero.NewOsFs()
+	DashlaneConfig := path.Join(dashlaneDir, "config.json")
+	DashlaneVault := path.Join(dashlaneDir, "vault.json")
+
 	context := &Context{
-		Filesystem:     afero.NewOsFs(),
-		DashlaneVault:  path.Join(dashlaneDir, "vault.json"),
-		DashlaneConfig: path.Join(dashlaneDir, "config.json"),
+		Dl: dashlane.New(fs, DashlaneVault, DashlaneConfig),
 	}
-	context.Filesystem.MkdirAll(dashlaneDir, 0700)
+	fs.MkdirAll(dashlaneDir, 0700)
 
 	cli := new(cli)
-	kconfig := kong.Configuration(kong.JSON, context.DashlaneConfig)
+	kconfig := kong.Configuration(kong.JSON, DashlaneConfig)
 	kongctx := kong.Parse(cli, kconfig)
 	err = kongctx.Run(context)
 	kongctx.FatalIfErrorf(err)
@@ -60,18 +55,4 @@ func Execute() {
 func (d debugFlag) BeforeApply() error {
 	logrus.SetLevel(logrus.DebugLevel)
 	return nil
-}
-
-func (ctx *Context) SaveUserCreds(username string, uki string) error {
-	userConfig := UserConfig{
-		Username: username,
-		Uki:      uki,
-	}
-
-	b, err := json.Marshal(userConfig)
-	if err != nil {
-		return err
-	}
-
-	return afero.WriteFile(ctx.Filesystem, ctx.DashlaneConfig, b, 0600)
 }

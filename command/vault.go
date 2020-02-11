@@ -31,7 +31,7 @@ type ListCmd struct {
 }
 
 func (f *FetchCmd) Run(ctx *Context) error {
-	vault, err := dashlane.LatestVault(f.Login, f.Uki)
+	vault, err := ctx.Dl.LatestVault(f.Login, f.Uki)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (f *FetchCmd) Run(ctx *Context) error {
 		return err
 	}
 
-	return afero.WriteFile(ctx.Filesystem, ctx.DashlaneVault, []byte(b), 0600)
+	return afero.WriteFile(ctx.Dl.Filesystem, ctx.Dl.Vault, []byte(b), 0600)
 }
 
 func (g *GetCmd) Run(ctx *Context) error {
@@ -50,7 +50,7 @@ func (g *GetCmd) Run(ctx *Context) error {
 
 func (l *ListCmd) Run(ctx *Context) error {
 	// read vault from vault dir
-	b, err := afero.Exists(ctx.Filesystem, ctx.DashlaneVault)
+	b, err := afero.Exists(ctx.Dl.Filesystem, ctx.Dl.Vault)
 	if err != nil {
 		return err
 	}
@@ -67,16 +67,16 @@ func (l *ListCmd) Run(ctx *Context) error {
 	}
 
 	// Read the vault and parse the json
-	rawFileVault, err := afero.ReadFile(ctx.Filesystem, ctx.DashlaneVault)
+	rawFileVault, err := afero.ReadFile(ctx.Dl.Filesystem, ctx.Dl.Vault)
 	if err != nil {
 		return err
 	}
-	jsonVault, err := dashlane.LoadVault(rawFileVault)
+	jsonVault, err := ctx.Dl.LoadVault(rawFileVault)
 	if err != nil {
 		return err
 	}
 
-	vault, err := dashlane.ParseVault(jsonVault.FullBackupFile, password)
+	vault, err := ctx.Dl.ParseVault(jsonVault.FullBackupFile, password)
 	if err != nil {
 		return err
 	}

@@ -78,6 +78,15 @@ type RawVault struct {
 	FullBackupFile string              `json:"fullBackupFile"`
 }
 
+func (item *VaultItem) getAnonId() string {
+	for _, data := range item.Datas {
+		if data.Key == "AnonId" {
+			return data.Value
+		}
+	}
+	return ""
+}
+
 func (vault *Vault) Lookup(pattern string) {
 	for _, item := range vault.List.Notes {
 		for _, data := range item.Datas {

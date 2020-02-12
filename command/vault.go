@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/howeyc/gopass"
-	"github.com/masterzen/dashlane-cli/pkg/dashlane"
 	"github.com/spf13/afero"
 )
 
@@ -71,28 +69,11 @@ func (l *ListCmd) Run(ctx *Context) error {
 	if err != nil {
 		return err
 	}
-	jsonVault, err := ctx.Dl.LoadVault(rawFileVault)
+	vault, err := ctx.Dl.OpenVault(rawFileVault, password)
 	if err != nil {
 		return err
 	}
 
-	vault, err := ctx.Dl.ParseVault(jsonVault.FullBackupFile, password)
-	if err != nil {
-		return err
-	}
-
-	lookupVaultData(vault.List.Passwords, l.Pattern)
-	lookupVaultData(vault.List.Notes, l.Pattern)
+	vault.Lookup(l.Pattern)
 	return nil
-}
-
-func lookupVaultData(items []dashlane.VaultItem, pattern string) {
-	for _, item := range items {
-		for _, data := range item.Datas {
-			if data.Key == "Title" && strings.Contains(data.Value, pattern) {
-				fmt.Println(item.Datas)
-				fmt.Println("==============")
-			}
-		}
-	}
 }

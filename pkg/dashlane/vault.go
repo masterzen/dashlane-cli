@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/pbkdf2"
 )
 
@@ -53,8 +54,13 @@ type VaultList struct {
 }
 
 type Vault struct {
-	XMLName xml.Name  `xml:"root"`
-	List    VaultList `xml:"KWDataList`
+	XMLName            xml.Name    `xml:"root"`
+	List               VaultList   `xml:"KWDataList`
+	Notes              []VaultItem `xml:"KWSecureNote,omitempty"`
+	Passwords          []VaultItem `xml:"KWAuthentifiant,omitempty"`
+	GeneratedPasswords []VaultItem `xml:"KWGeneratedPassword,omitempty"`
+	DataChangeHistory  []VaultItem `xml:"KWDataChangeHistory,omitempty"`
+	Identity           []VaultItem `xml:"KWIdentity,omitempty"`
 }
 
 type TransactionsEntry struct {
@@ -72,25 +78,74 @@ type RawVault struct {
 	FullBackupFile string              `json:"fullBackupFile"`
 }
 
-func (dl *Dashlane) LoadVault(data []byte) (*RawVault, error) {
+func (vault *Vault) Lookup(pattern string) {
+	for _, item := range vault.List.Notes {
+		for _, data := range item.Datas {
+			if strings.Contains(data.Value, pattern) {
+				fmt.Println(item.Datas)
+				fmt.Println("==============")
+			}
+		}
+	}
+
+	for _, item := range vault.List.Passwords {
+		for _, data := range item.Datas {
+			if strings.Contains(data.Value, pattern) {
+				fmt.Println(item.Datas)
+				fmt.Println("==============")
+			}
+		}
+	}
+	for _, item := range vault.Notes {
+		for _, data := range item.Datas {
+			if strings.Contains(data.Value, pattern) {
+				fmt.Println(item.Datas)
+				fmt.Println("==============")
+			}
+		}
+	}
+
+	for _, item := range vault.Passwords {
+		for _, data := range item.Datas {
+			if strings.Contains(data.Value, pattern) {
+				fmt.Println(item.Datas)
+				fmt.Println("==============")
+			}
+		}
+	}
+}
+
+func (dl *Dashlane) OpenVault(data []byte, password []byte) (*Vault, error) {
 	rawVault := new(RawVault)
 	err := json.Unmarshal(data, rawVault)
 	if err != nil {
 		return nil, err
 	}
-	return rawVault, nil
-}
 
-func (dl *Dashlane) ParseVault(data string, password []byte) (*Vault, error) {
-	decrypted, err := dl.DecryptVault(data, password)
+	vault := new(Vault)
+	// Uncrypt the all bacup
+	logrus.Debug("Opening full backup file")
+	decrypted, err := dl.DecryptVault(rawVault.FullBackupFile, password)
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Println(string(decrypted))
-	vault := new(Vault)
 	err = xml.Unmarshal(decrypted, vault)
 	if err != nil {
 		return nil, err
+	}
+
+	// Uncrypt the transactions
+	logrus.Debug("Opening transactions")
+	for _, transaction := range rawVault.Transactions {
+		if len(transaction.Content) > 0 {
+			content, err := dl.DecryptVault(transaction.Content, password)
+			if err == nil {
+				err := xml.Unmarshal(content, vault.List)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
 	}
 
 	return vault, nil

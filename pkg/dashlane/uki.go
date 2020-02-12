@@ -1,8 +1,14 @@
 package dashlane
 
 import (
+	"crypto/md5"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"math/big"
 	"net/url"
+	"runtime"
+	"time"
 )
 
 const SENDTOKEN_URI = "https://ws1.dashlane.com/6/authentication/sendtoken"
@@ -16,7 +22,7 @@ const (
 	UKI_ERROR
 )
 
-func SendToken(login string) (SendTokenResult, error) {
+func (dl *Dashlane) SendToken(login string) (SendTokenResult, error) {
 	data := url.Values{}
 	data.Set("login", login)
 	data.Set("isOTPAware", "true")
@@ -36,7 +42,7 @@ func SendToken(login string) (SendTokenResult, error) {
 	}
 }
 
-func RegisterUki(devicename, login, token, uki string) error {
+func (dl *Dashlane) RegisterUki(devicename, login, token, uki string) error {
 	data := url.Values{}
 	data.Set("login", login)
 	data.Set("devicename", devicename)
@@ -56,4 +62,23 @@ func RegisterUki(devicename, login, token, uki string) error {
 	default:
 		return fmt.Errorf("Unknown return value: %v", body)
 	}
+}
+
+func getMD5Hash(text string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(text))
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func (dl *Dashlane) GenerateUki() (string, error) {
+	r, err := rand.Int(rand.Reader, big.NewInt(268435456))
+	if err != nil {
+		return "", err
+	}
+
+	var time = fmt.Sprintf("%d", time.Now().Unix())
+	var text = runtime.GOOS + runtime.GOARCH + time + r.Text(16)
+	var hashed = getMD5Hash(text)
+
+	return hashed + "-webaccess-" + time, nil
 }

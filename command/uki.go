@@ -1,70 +1,44 @@
 package command
 
 import (
-	"crypto/md5"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/big"
-	"runtime"
-	"time"
 
-	"github.com/masterzen/dashlane-cli/dashlane"
-	"github.com/spf13/cobra"
-	jww "github.com/spf13/jwalterweatherman"
+	"github.com/masterzen/dashlane-cli/pkg/dashlane"
+	"github.com/sirupsen/logrus"
 )
 
-// ukiCmd represents the master uki command
-var ukiCmd = &cobra.Command{
-	Use:     "uki [flags] [register|code]",
-	Aliases: []string{"computer"},
-	Short:   "Manage computer registration",
-	Long:    `dashlane-cli uki allows to register a new computer to dashlane.`,
-	Example: `dashlane-cli uki register`,
+type UkiCmd struct {
+	Code     CodeCmd     `cmd help:"Finalize this computer registration."`
+	Register RegisterCmd `cmd help:"Register this computer under the <username> account."`
 }
 
-var registerCmd = &cobra.Command{
-	Use:   "register <username>",
-	Short: "Register this computer under the <username> account",
-	Long: `dashlane-cli uki register allows to register a new computer to dashlane.
-
-`,
-	Example: `dashlane-cli uki register myself@gmail.com`,
-	RunE:    registerExec,
+type RegisterCmd struct {
+	Username string `arg required name:"username" help:"Username."`
+	Code     string `optional name:"code" short:"c" help:"optional OTP code."`
 }
 
-var codeCmd = &cobra.Command{
-	Use:   "code <code>",
-	Short: "Finalize this computer registration",
-	Long: `dashlane-cli uki code allows to enter the confirmation code.
-
-`,
-	Example: `dashlane-cli uki code 0f304f04504040f40`,
-	RunE:    codeExec,
+type CodeCmd struct {
+	Username string `required name:"username" help:"Username."`
+	Code     string `arg required name:"code" help:"Code."`
 }
 
-func init() {
-	RootCmd.AddCommand(ukiCmd)
-	ukiCmd.AddCommand(registerCmd)
-	ukiCmd.AddCommand(codeCmd)
-
-	registerCmd.Flags().StringP("code", "c", "", "optional OTP code")
-}
-
-func registerExec(cmd *cobra.Command, args []string) error {
-	var login = args[0]
-	jww.DEBUG.Println("registerExec for:", login)
-	res, err := dashlane.Exist(login)
+func (r *RegisterCmd) Run(ctx *Context) error {
+	var login = r.Username
+	var code = r.Code
+	logrus.Debug("registerExec for:", login)
+	res, err := ctx.Dl.Exist(login)
 	if err != nil {
 		return err
 	}
 
+	uki := ""
+
 	switch res {
 	case dashlane.EXIST_YES:
-		jww.DEBUG.Println("registerExec returned: EXIST_YES")
+		logrus.Debug("registerExec returned: EXIST_YES")
 		// ask for a token by email
-		response, err := dashlane.SendToken(login)
+		response, err := ctx.Dl.SendToken(login)
 		if err != nil {
 			return err
 		}
@@ -72,20 +46,20 @@ func registerExec(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("Error while requesting token: %v", response)
 		}
 	case dashlane.EXIST_YES_OTP_NEWDEVICE:
-		jww.DEBUG.Println("registerExec returned: EXIST_YES_OTP_NEWDEVICE")
-		if cmd.Flags().Changed("code") {
-			// retrieve the server side token
-			code, _ := cmd.Flags().GetString("code")
-			if token, err := dashlane.LatestToken(login, code); err == nil {
+		logrus.Debug("registerExec returned: EXIST_YES_OTP_NEWDEVICE")
+		if len(code) > 0 {
+			if token, err := ctx.Dl.LatestToken(login, code); err == nil {
 				// register now
-				jww.DEBUG.Println("registerExec token is: ", token)
-				uki := generate()
-				jww.DEBUG.Println("registerExec uki is: ", uki)
-				if err = dashlane.RegisterUki("dashlane-cli", login, token, uki); err != nil {
+				logrus.Debug("registerExec token is: ", token)
+				uki, err := ctx.Dl.GenerateUki()
+				if err != nil {
 					return err
-				} else {
-					jww.INFO.Println("Computer registered with uki: ", uki)
 				}
+				logrus.Debug("registerExec uki is: ", uki)
+				if err = ctx.Dl.RegisterUki("dashlane-cli", login, token, uki); err != nil {
+					return err
+				}
+				logrus.Info("Computer registered with uki: ", uki)
 			} else {
 				return err
 			}
@@ -96,39 +70,25 @@ func registerExec(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("There is no account for this login")
 	}
 
+	ctx.Dl.SaveUserCreds(login, uki)
 	return nil
 }
 
-func getMD5Hash(text string) string {
-	hasher := md5.New()
-	hasher.Write([]byte(text))
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-func generate() string {
-	r, err := rand.Int(rand.Reader, big.NewInt(268435456))
+func (c *CodeCmd) Run(ctx *Context) error {
+	var login = c.Username
+	var token = c.Code
+	uki, err := ctx.Dl.GenerateUki()
 	if err != nil {
-		panic(err)
+		return err
 	}
-
-	var time = fmt.Sprintf("%d", time.Now().Unix())
-	var text = runtime.GOOS + runtime.GOARCH + time + r.Text(16)
-	var hashed = getMD5Hash(text)
-
-	return hashed + "-webaccess-" + time
-}
-
-func codeExec(cmd *cobra.Command, args []string) error {
-	var login = args[0]
-	var token = args[1]
-	var uki = generate()
 
 	fmt.Printf("Registering")
 
-	if err := dashlane.RegisterUki("dashlane-cli", login, token, uki); err != nil {
+	if err = ctx.Dl.RegisterUki("dashlane-cli", login, token, uki); err != nil {
 		return err
 	}
 
 	fmt.Printf("Computer registered with uki %v\n", uki)
+	ctx.Dl.SaveUserCreds(login, uki)
 	return nil
 }
